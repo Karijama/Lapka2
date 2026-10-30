@@ -1,0 +1,13 @@
+/* Возвращён именно классический визуальный стиль шаблонов Karijama/Jack.
+   Цвета, сетка, таблицы, панели, кнопки — стандартный Bootstrap 5.3. */
+.navbar-brand { font-weight: 600; letter-spacing: .5px; }
+.footer { background-color: #f8f9fa; padding: 2rem 0; margin-top: 3rem; }
+.main-content { min-height: calc(100vh - 160px); padding: 2rem 0; }
+.card { box-shadow: 0 .125rem .25rem rgba(0,0,0,.075); border: 1px solid rgba(0,0,0,.125); transition: transform .2s; }
+.card:hover { transform: translateY(-3px); }
+.pet-detail-img { height: 330px; object-fit: contain; background: #f8f9fa; }
+.table td, .table th { vertical-align: middle; }
+.table td { max-width: 480px; }
+.page-link { color: #0d6efd; }
+.form-label { margin-bottom: .3rem; }
+@media(max-width: 767px) { .main-content { padding: 1.25rem 0; } .display-5 { font-size: 2rem; } }

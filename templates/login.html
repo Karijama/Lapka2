@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Вход администратора{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Вход</li>{% endblock %}
+{% block page_title %}Вход в панель управления{% endblock %}
+{% block page_subtitle %}Публикация и редактирование объявлений{% endblock %}
+{% block content %}<div class="row justify-content-center"><div class="col-md-7 col-lg-5"><div class="card shadow-sm"><div class="card-header bg-primary text-white"><h5 class="mb-0">Авторизация</h5></div><div class="card-body p-4"><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><div class="mb-3"><label class="form-label fw-semibold" for="password">Пароль администратора</label><input class="form-control" id="password" name="password" type="password" required autofocus autocomplete="current-password"></div><button class="btn btn-primary" type="submit">Войти</button></form><p class="form-text mt-3 mb-0">Пароль задаётся через переменную окружения ADMIN_PASSWORD.</p></div></div></div></div>{% endblock %}

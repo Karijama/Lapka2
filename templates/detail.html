@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}{{ animal.name }}{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item"><a href="{{ url_for('catalog') }}">Каталог</a></li><li class="breadcrumb-item active">{{ animal.name }}</li>{% endblock %}
+{% block page_title %}{{ animal.name }}{% endblock %}
+{% block page_subtitle %}{{ species_labels[animal.species] }} · {{ animal.city }}{% endblock %}
+{% block content %}
+<div class="row g-4"><div class="col-lg-5"><div class="card h-100"><img class="card-img-top pet-detail-img" src="{{ animal.photo_url or url_for('static', filename='img/' ~ animal.species ~ ((animal.id % 4) + 1) ~ '.svg') }}" alt="{{ animal.name }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/pet-fallback.svg') }}'"><div class="card-body"><span class="badge {{ 'bg-success' if animal.status == 'searching' else 'bg-secondary' }}">{{ status_labels[animal.status] }}</span></div></div></div>
+<div class="col-lg-7"><div class="card h-100"><div class="card-header bg-primary text-white"><h5 class="mb-0">Информация о животном</h5></div><div class="card-body"><table class="table table-striped"><tbody><tr><th>Кличка</th><td>{{ animal.name }}</td></tr><tr><th>Возраст</th><td>{{ animal.age_years ~ ' лет' if animal.age_years is not none else 'Не указан' }}</td></tr><tr><th>Пол</th><td>{{ gender_labels[animal.gender] }}</td></tr><tr><th>Размер</th><td>{{ size_labels[animal.size] }}</td></tr><tr><th>Прививки</th><td>{{ 'Да' if animal.vaccinated else 'Не указаны' }}</td></tr><tr><th>Стерилизация</th><td>{{ 'Да' if animal.neutered else 'Не указана' }}</td></tr><tr><th>Приют</th><td>{{ animal.shelter_name or 'Не указан' }}</td></tr></tbody></table>
+<h6>Описание</h6><p>{{ animal.description or 'Описание ещё не добавлено.' }}</p>
+{% if animal.contact_email and animal.status == 'searching' %}<a class="btn btn-primary" href="mailto:{{ animal.contact_email }}?subject={{ ('Знакомство с ' ~ animal.name)|urlencode }}">Связаться с приютом</a>{% endif %}
+{% if is_admin %}<hr><a class="btn btn-outline-primary" href="{{ url_for('edit', animal_id=animal.id) }}">Редактировать</a><form action="{{ url_for('delete', animal_id=animal.id) }}" method="post" class="d-inline" data-confirm="Удалить анкету {{ animal.name }}?"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="btn btn-outline-danger" type="submit">Удалить</button></form>{% endif %}
+</div></div></div></div>
+{% if related %}<h3 class="mt-5">Похожие объявления</h3><div class="row g-3">{% for a in related %}<div class="col-md-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">{{ a.name }}</h5><p class="card-text">{{ species_labels[a.species] }}, {{ a.city }}</p><a class="btn btn-outline-primary btn-sm" href="{{ url_for('animal_detail', animal_id=a.id) }}">Подробнее</a></div></div></div>{% endfor %}</div>{% endif %}
+{% endblock %}

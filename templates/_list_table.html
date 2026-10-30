@@ -1,0 +1,52 @@
+<!-- Таблица «Все записи» исходного Karijama/Jack. Расширена поиском, фильтрами и пагинацией. -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" action="{{ url_for(request.endpoint) }}" class="row g-3 align-items-end" role="search">
+      <div class="col-lg-4 col-md-6"><label class="form-label fw-semibold" for="q">Поиск по кличке</label><input class="form-control" id="q" name="q" placeholder="Например, Мурка" value="{{ filters.q }}"></div>
+      <div class="col-lg-2 col-md-3"><label class="form-label fw-semibold" for="species">Вид</label><select class="form-select" id="species" name="species"><option value="">Все</option>{% for value,label in species_labels.items() %}<option value="{{ value }}" {{ 'selected' if filters.species == value else '' }}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-lg-2 col-md-3"><label class="form-label fw-semibold" for="city">Город</label><select class="form-select" name="city" id="city"><option value="">Все</option>{% for name in cities %}<option value="{{ name }}" {{ 'selected' if filters.city == name else '' }}>{{ name }}</option>{% endfor %}</select></div>
+      <div class="col-lg-2 col-md-4"><label class="form-label fw-semibold" for="status">Статус</label><select class="form-select" id="status" name="status"><option value="">Все</option>{% for value,label in status_labels.items() %}<option value="{{ value }}" {{ 'selected' if filters.status == value else '' }}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-lg-2 col-md-4"><button class="btn btn-primary w-100" type="submit">Найти</button></div>
+      <div class="col-12 d-flex gap-3 flex-wrap"><div><label class="form-label fw-semibold me-2" for="size">Размер</label><select class="form-select form-select-sm d-inline-block w-auto" id="size" name="size" onchange="this.form.requestSubmit()"><option value="">Любой</option>{% for value,label in size_labels.items() %}<option value="{{ value }}" {{ 'selected' if filters.size == value else '' }}>{{ label }}</option>{% endfor %}</select></div><a href="{{ url_for(request.endpoint) }}" class="small align-self-center">Сбросить фильтры</a></div>
+    </form>
+  </div>
+</div>
+<div class="card shadow-sm">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Все записи</h5>
+    <a href="{{ url_for('create') if is_admin else url_for('login') }}" class="btn btn-light btn-sm">⊕ Добавить запись</a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-striped mb-0">
+        <thead class="table-light"><tr><th scope="col" class="text-center">#</th><th scope="col">Дата создания</th><th scope="col">Заголовок</th><th scope="col">Содержание</th><th scope="col" class="text-center">Действия</th></tr></thead>
+        <tbody>
+          {% for post in results['items'] %}
+          <tr><th scope="row" class="text-center">{{ (results.page - 1) * results.per_page + loop.index }}</th>
+            <td class="text-nowrap">{{ post.created_at[:10] if post.created_at else '—' }}</td>
+            <td class="fw-bold"><a href="{{ url_for('animal_detail', animal_id=post.id) }}">{{ post.name }}</a><div class="text-muted small fw-normal">{{ species_labels[post.species] }} · {{ post.city }}</div></td>
+            <td><div>{{ (post.description[:75] ~ '…') if post.description|length > 75 else post.description or 'Описание не добавлено' }}</div><span class="badge {{ 'bg-success' if post.status == 'searching' else 'bg-secondary' }}">{{ status_labels[post.status] }}</span></td>
+            <td class="text-center text-nowrap"><div class="btn-group" role="group" aria-label="Действия с объявлением">
+              <a href="{{ url_for('animal_detail', animal_id=post.id) }}" class="btn btn-outline-primary btn-sm" title="Просмотреть">Просмотр</a>
+              {% if is_admin %}<a href="{{ url_for('edit', animal_id=post.id) }}" class="btn btn-outline-primary btn-sm" title="Редактировать">✎</a>
+              <form method="post" action="{{ url_for('delete', animal_id=post.id) }}" data-confirm="Удалить анкету {{ post.name }} без возможности восстановления?" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="btn btn-outline-danger btn-sm" title="Удалить">✕</button></form>{% endif %}
+            </div></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center py-5 text-muted"><div class="fs-1" aria-hidden="true">▤</div><p class="mb-1">Нет записей для отображения</p><small>Попробуйте изменить фильтры или добавьте новую анкету.</small></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer text-muted d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>Всего записей: <strong>{{ results.total }}</strong></div>
+    {% if results.pages > 1 %}<nav aria-label="Страницы результатов"><ul class="pagination pagination-sm mb-0">
+    {% for p in range(1, results.pages + 1) %}
+      {% if p == 1 or p == results.pages or (p >= results.page - 2 and p <= results.page + 2) %}
+      <li class="page-item {{ 'active' if p == results.page else '' }}"><a class="page-link" href="{{ url_for(request.endpoint, page=p, q=filters.q, species=filters.species, city=filters.city, status=filters.status, size=filters.size) }}">{{ p }}</a></li>
+      {% elif p == 2 and results.page > 4 or p == results.pages - 1 and results.page < results.pages - 3 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+    {% endfor %}
+    </ul></nav>{% endif %}
+  </div>
+</div>

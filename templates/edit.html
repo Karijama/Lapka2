@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Редактировать запись{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active" aria-current="page">Редактировать запись #{{ item.id }}</li>{% endblock %}
+{% block page_title %}Редактировать запись{% endblock %}
+{% block page_subtitle %}Внесите необходимые изменения в форму ниже{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-10 col-lg-8"><div class="card shadow-sm"><div class="card-header bg-warning text-dark"><h5 class="card-title mb-0">✎ Редактирование записи #{{ item.id }}</h5></div><div class="card-body p-4">{% include '_animal_form.html' %}</div></div><div class="alert alert-info mt-4">ID записи: {{ item.id }} · Создана: {{ item.created_at[:10] if item.created_at else '—' }}</div></div></div>
+{% endblock %}

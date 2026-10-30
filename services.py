@@ -1,84 +1,166 @@
-"""Validation and database operations separated from Flask routing."""
+"""Validated operations shared by web pages and JSON REST endpoints."""
+from __future__ import annotations
+
+from urllib.parse import urlsplit
 from sqlalchemy import func, select
 from models import Animal, Shelter
 
-ALLOWED_SPECIES = {"cat", "dog", "other"}
-ALLOWED_STATUSES = {"searching", "adopted"}
+SPECIES = {"cat": "Кошка", "dog": "Собака", "other": "Другое"}
+STATUSES = {"searching": "Ищет дом", "adopted": "Нашёл дом"}
+GENDERS = {"female": "Девочка", "male": "Мальчик", "unknown": "Не указан"}
+SIZES = {"small": "Маленький", "medium": "Средний", "large": "Крупный"}
+INPUT_FIELDS = {
+    "name", "species", "city", "age_years", "gender", "size", "description", "status",
+    "vaccinated", "neutered", "photo_url", "contact_email", "shelter_id"
+}
 
-def animal_to_dict(a):
+
+def animal_to_dict(a: Animal):
     return {"id": a.id, "name": a.name, "species": a.species,
-            "city": a.city, "age_years": a.age_years,
-            "description": a.description, "status": a.status,
-            "shelter_id": a.shelter_id}
+            "city": a.city, "age_years": a.age_years, "gender": a.gender,
+            "size": a.size, "description": a.description, "status": a.status,
+            "vaccinated": a.vaccinated, "neutered": a.neutered,
+            "photo_url": a.photo_url, "contact_email": a.contact_email,
+            "shelter_id": a.shelter_id, "shelter_name": a.shelter.name if a.shelter else None,
+            "created_at": a.created_at.isoformat() if a.created_at else None}
 
-def validate_payload(data, partial=False):
+
+def validate_payload(data, *, partial=False):
     if not isinstance(data, dict):
-        raise ValueError("JSON object required")
-    required = ("name", "species", "city")
-    if not partial and any(not data.get(k) for k in required):
-        raise ValueError("name, species and city are required")
-    if "species" in data and data["species"] not in ALLOWED_SPECIES:
-        raise ValueError("unsupported species")
-    if "status" in data and data["status"] not in ALLOWED_STATUSES:
-        raise ValueError("unsupported status")
-    if "age_years" in data and data["age_years"] is not None:
-        if type(data["age_years"]) is not int or data["age_years"] < 0:
-            raise ValueError("age_years must be a nonnegative integer")
-    for k in ("name", "city"):
-        if k in data and (not isinstance(data[k], str) or not data[k].strip()):
-            raise ValueError(f"{k} must be a nonempty string")
-    allowed = {"name", "species", "city", "age_years", "description", "status", "shelter_id"}
-    return {k: v.strip() if k in {"name", "city"} and isinstance(v, str) else v
-            for k, v in data.items() if k in allowed}
+        raise ValueError("Ожидается JSON-объект")
+    unknown = set(data) - INPUT_FIELDS
+    if unknown:
+        raise ValueError("Неизвестные поля: " + ", ".join(sorted(unknown)))
+    if not partial and any(not data.get(key) for key in ("name", "species", "city")):
+        raise ValueError("Поля name, species и city обязательны")
+    normalized = {}
+    for key, value in data.items():
+        if key in ("name", "city"):
+            if not isinstance(value, str) or not value.strip() or len(value.strip()) > (120 if key == "name" else 100):
+                raise ValueError(f"Поле {key} обязательно, максимальная длина 120/100 символов")
+            value = value.strip()
+        elif key in ("description", "photo_url", "contact_email"):
+            if not isinstance(value, str):
+                raise ValueError(f"Поле {key} должно быть строкой")
+            value = value.strip()
+            if len(value) > {"description": 3000, "photo_url": 500, "contact_email": 254}[key]:
+                raise ValueError(f"Поле {key} слишком длинное")
+            if key == "photo_url" and value:
+                parts = urlsplit(value)
+                if parts.scheme not in ("https", "http") or not parts.netloc or parts.username or parts.password:
+                    raise ValueError("Изображение: нужна полная HTTP(S)-ссылка")
+            if key == "contact_email" and value and ("@" not in value or any(c.isspace() for c in value)):
+                raise ValueError("Укажите корректный email")
+        elif key == "species" and value not in SPECIES:
+            raise ValueError("species: cat, dog или other")
+        elif key == "status" and value not in STATUSES:
+            raise ValueError("status: searching или adopted")
+        elif key == "gender" and value not in GENDERS:
+            raise ValueError("gender: female, male или unknown")
+        elif key == "size" and value not in SIZES:
+            raise ValueError("size: small, medium или large")
+        elif key == "age_years":
+            if value in (None, ""):
+                value = None
+            elif type(value) is not int or not 0 <= value <= 50:
+                raise ValueError("Возраст должен быть целым числом от 0 до 50")
+        elif key in ("vaccinated", "neutered") and type(value) is not bool:
+            raise ValueError(f"{key}: требуется true или false")
+        elif key == "shelter_id":
+            if value in (None, ""):
+                value = None
+            elif type(value) is not int or value <= 0:
+                raise ValueError("shelter_id должен быть положительным целым числом")
+        normalized[key] = value
+    return normalized
+
 
 def create_animal(session, data):
-    fields = validate_payload(data)
-    if fields.get("shelter_id") is not None and session.get(Shelter, fields["shelter_id"]) is None:
-        raise ValueError("shelter not found")
-    fields["name_key"] = fields["name"].casefold()
-    fields["city_key"] = fields["city"].casefold()
-    a = Animal(**fields)
-    session.add(a)
+    values = validate_payload(data)
+    if values.get("shelter_id") and session.get(Shelter, values["shelter_id"]) is None:
+        raise ValueError("Указанный приют не найден")
+    values["name_key"] = values["name"].casefold()
+    values["city_key"] = values["city"].casefold()
+    animal = Animal(**values)
+    session.add(animal)
     session.commit()
-    return animal_to_dict(a)
+    return animal_to_dict(animal)
 
-def list_animals(session, species=None, city=None, status=None, q=None, page=1, per_page=10):
-    if not isinstance(page, int) or not isinstance(per_page, int) or page < 1 or not 1 <= per_page <= 100:
-        raise ValueError("page must be >=1; per_page must be in 1..100")
+
+def update_animal(session, animal_id, data):
+    animal = session.get(Animal, animal_id)
+    if not animal:
+        return None
+    values = validate_payload(data, partial=True)
+    if values.get("shelter_id") and session.get(Shelter, values["shelter_id"]) is None:
+        raise ValueError("Указанный приют не найден")
+    for key, value in values.items():
+        setattr(animal, key, value)
+    if "name" in values:
+        animal.name_key = animal.name.casefold()
+    if "city" in values:
+        animal.city_key = animal.city.casefold()
+    session.commit()
+    return animal_to_dict(animal)
+
+
+def get_animal(session, animal_id):
+    animal = session.get(Animal, animal_id)
+    return animal_to_dict(animal) if animal else None
+
+
+def delete_animal(session, animal_id):
+    animal = session.get(Animal, animal_id)
+    if animal is None:
+        return False
+    session.delete(animal)
+    session.commit()
+    return True
+
+
+def list_animals(session, *, species=None, city=None, status=None, q=None, page=1, per_page=9, size=None, shelter_id=None):
+    if type(page) is not int or type(per_page) is not int or page < 1 or per_page < 1 or per_page > 100:
+        raise ValueError("page должен быть ≥ 1, per_page — от 1 до 100")
+    if species and species not in SPECIES or status and status not in STATUSES or size and size not in SIZES:
+        raise ValueError("Некорректный фильтр")
     stmt = select(Animal)
     if species:
         stmt = stmt.where(Animal.species == species)
     if city:
-        stmt = stmt.where(Animal.city_key == city.casefold())
+        stmt = stmt.where(Animal.city_key == city.strip().casefold())
     if status:
         stmt = stmt.where(Animal.status == status)
+    if size:
+        stmt = stmt.where(Animal.size == size)
+    if shelter_id is not None:
+        if type(shelter_id) is not int or shelter_id < 1:
+            raise ValueError("Неправильный ID приюта")
+        stmt = stmt.where(Animal.shelter_id == shelter_id)
     if q:
-        stmt = stmt.where(Animal.name_key.contains(q.casefold()))
+        q_norm = q.strip().casefold()
+        if len(q_norm) > 120:
+            raise ValueError("Поисковый запрос слишком длинный")
+        if q_norm:
+            stmt = stmt.where(Animal.name_key.contains(q_norm, autoescape=True))
     total = session.scalar(select(func.count()).select_from(stmt.subquery()))
-    rows = session.scalars(stmt.order_by(Animal.id).offset((page - 1) * per_page).limit(per_page)).all()
-    return {"items": [animal_to_dict(a) for a in rows], "total": total,
-            "page": page, "per_page": per_page}
+    animals = session.scalars(stmt.order_by(Animal.created_at.desc(), Animal.id.desc())
+                              .offset((page-1)*per_page).limit(per_page)).all()
+    return {"items": [animal_to_dict(a) for a in animals], "total": total,
+            "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
 
-def get_animal(session, animal_id):
-    a = session.get(Animal, animal_id)
-    return animal_to_dict(a) if a else None
 
-def update_animal(session, animal_id, data):
-    a = session.get(Animal, animal_id)
-    if not a: return None
-    changed = validate_payload(data, partial=True)
-    for key, value in changed.items():
-        setattr(a, key, value)
-    if "name" in changed:
-        a.name_key = a.name.casefold()
-    if "city" in changed:
-        a.city_key = a.city.casefold()
-    session.commit()
-    return animal_to_dict(a)
+def list_shelters(session):
+    return session.scalars(select(Shelter).order_by(Shelter.name)).all()
 
-def delete_animal(session, animal_id):
-    a = session.get(Animal, animal_id)
-    if not a: return False
-    session.delete(a)
-    session.commit()
-    return True
+
+def list_cities(session):
+    return session.scalars(select(Animal.city).distinct().order_by(Animal.city)).all()
+
+
+def stats(session):
+    return {
+        "total": session.scalar(select(func.count(Animal.id))) or 0,
+        "searching": session.scalar(select(func.count(Animal.id)).where(Animal.status == "searching")) or 0,
+        "adopted": session.scalar(select(func.count(Animal.id)).where(Animal.status == "adopted")) or 0,
+        "shelters": session.scalar(select(func.count(Shelter.id))) or 0,
+    }

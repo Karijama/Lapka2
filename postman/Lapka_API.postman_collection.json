@@ -1,0 +1,12 @@
+{
+  "info": {"name": "Lapka API · 2026", "description": "Учебный сервис Lapka. Для изменяющих запросов установите переменную api_key.", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "variable": [{"key": "base_url", "value": "http://127.0.0.1:5000"}, {"key": "api_key", "value": "YOUR_API_KEY"}],
+  "item": [
+    {"name": "Список питомцев", "request": {"method": "GET", "url": "{{base_url}}/api/animals?q=мур&page=1&per_page=5"}},
+    {"name": "Приюты", "request": {"method": "GET", "url": "{{base_url}}/api/shelters"}},
+    {"name": "Добавить приют", "request": {"method": "POST", "header": [{"key": "X-API-Key", "value": "{{api_key}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"name\":\"Учебный приют\",\"city\":\"Якутск\"}"}, "url": "{{base_url}}/api/shelters"}},
+    {"name": "Создать питомца", "request": {"method": "POST", "header": [{"key": "X-API-Key", "value": "{{api_key}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"name\":\"Мурка\",\"species\":\"cat\",\"city\":\"Якутск\",\"age_years\":2}"}, "url": "{{base_url}}/api/animals"}},
+    {"name": "Редактировать питомца #1", "request": {"method": "PATCH", "header": [{"key": "X-API-Key", "value": "{{api_key}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"status\":\"adopted\"}"}, "url": "{{base_url}}/api/animals/1"}},
+    {"name": "Удалить питомца #1", "request": {"method": "DELETE", "header": [{"key": "X-API-Key", "value": "{{api_key}}"}], "url": "{{base_url}}/api/animals/1"}}
+  ]
+}

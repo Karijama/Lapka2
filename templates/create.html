@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Добавить запись{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active" aria-current="page">Добавить запись</li>{% endblock %}
+{% block page_title %}Добавить новую запись{% endblock %}
+{% block page_subtitle %}Заполните форму ниже, чтобы создать новую запись{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-10 col-lg-8"><div class="card shadow-sm"><div class="card-header bg-primary text-white"><h5 class="card-title mb-0">✎ Форма создания записи</h5></div><div class="card-body p-4">{% include '_animal_form.html' %}</div></div><div class="card mt-4"><div class="card-body"><h6 class="card-title text-muted">Советы по заполнению:</h6><ul class="mb-0 text-muted small"><li>Используйте понятную кличку и подробное описание животного</li><li>Укажите реальный контакт для связи с представителем приюта</li></ul></div></div></div></div>
+{% endblock %}

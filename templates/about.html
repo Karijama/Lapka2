@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}О проекте{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">О нас</li>{% endblock %}
+{% block page_title %}О проекте Lapka{% endblock %}
+{% block page_subtitle %}Учебный проект для помощи бездомным животным{% endblock %}
+{% block content %}<div class="card shadow-sm"><div class="card-header bg-primary text-white"><h5 class="mb-0">О нашей платформе</h5></div><div class="card-body"><p>Lapka объединяет объявления о животных, которым нужен дом. Проект разработан на Flask и Jinja2, с использованием реляционной базы данных.</p><p>В обновлённой версии добавлены структурированные анкеты, поиск, фильтры, постраничный вывод, таблица приютов и REST API. При этом сохранено оформление первоначального сайта Jack: синяя навигация, таблицы Bootstrap и привычные формы.</p><a class="btn btn-primary" href="{{ url_for('catalog') }}">Перейти к объявлениям</a></div></div>{% endblock %}
