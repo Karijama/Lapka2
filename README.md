@@ -1,4 +1,4 @@
-# Lapka — оформление оригинального Karijama/Jack + новые функции (2026)
+# Lapka(2026)
 
 Основа проекта: [Karijama/Jack](https://github.com/Karijama/Jack).:
 - синяя навигационная панель `navbar-dark bg-primary` с брендом Lapka;
