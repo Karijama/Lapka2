@@ -1,8 +1,3 @@
-"""Database schema for the Lapka project.
-
-The original Karijama/Jack project stored generic posts in SQLite's `bd` table.
-The 2026 version preserves Flask/Jinja architecture and uses structured animal and shelter records.
-"""
 from __future__ import annotations
 
 from datetime import datetime, timezone

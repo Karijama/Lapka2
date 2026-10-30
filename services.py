@@ -1,4 +1,3 @@
-"""Validated operations shared by web pages and JSON REST endpoints."""
 from __future__ import annotations
 
 from urllib.parse import urlsplit

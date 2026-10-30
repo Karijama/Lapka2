@@ -1,4 +1,3 @@
-"""HTTP integration tests (run with pytest after installing requirements)."""
 import pytest
 from app import create_app
 

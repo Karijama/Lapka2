@@ -1,8 +1,3 @@
-"""Lapka: a full Flask/Jinja website and a standalone JSON API.
-
-Based on https://github.com/Karijama/Jack (original Flask + SQLite + Jinja).
-Start: python app.py
-"""
 from __future__ import annotations
 
 import hmac

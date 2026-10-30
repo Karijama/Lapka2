@@ -1,0 +1,127 @@
+1. НАСТРОЙКА ПОДКЛЮЧЕНИЯ
+-----------------------
+$base = "http://127.0.0.1:5000"
+$key = Read-Host "Введите API-ключ"
+$headers = @{"X-API-Key" = $key}
+
+2. ПРОВЕРКА СЕРВЕРА (GET)
+------------------------
+Invoke-RestMethod "$base/health"
+
+3. ПОЛУЧЕНИЕ ВСЕХ ЖИВОТНЫХ (GET)
+--------------------------------
+Invoke-RestMethod "$base/api/animals" | ConvertTo-Json -Depth 6
+
+4. СОЗДАНИЕ ПРИЮТА (POST)
+------------------------
+$body = @{
+    name = "Приют Lapka"
+    city = "Якутск"
+    description = "Учебный приют"
+} | ConvertTo-Json
+
+$shelter = Invoke-RestMethod -Uri "$base/api/shelters" -Method POST -Headers $headers -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes($body))
+
+$shelter
+$shelterId = $shelter.id
+
+5. ДОБАВЛЕНИЕ ЖИВОТНОГО (POST)
+-----------------------------
+$body = @{
+    name = "Мурка"
+    species = "cat"
+    city = "Якутск"
+    age_years = 2
+    gender = "female"
+    size = "small"
+    description = "Добрая кошка ищет дом"
+    status = "searching"
+    vaccinated = $true
+    shelter_id = [int]$shelterId
+} | ConvertTo-Json
+
+$animal = Invoke-RestMethod -Uri "$base/api/animals" -Method POST -Headers $headers -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes($body))
+
+$animal
+$id = $animal.id
+
+Проверка: обновите главную страницу Lapka — Мурка должна появиться в списке.
+
+6. ПОЛУЧЕНИЕ ЖИВОТНОГО ПО ID (GET)
+---------------------------------
+Invoke-RestMethod "$base/api/animals/$id"
+
+7. ПОИСК ПО ИМЕНИ (GET)
+----------------------
+$q = [uri]::EscapeDataString("Мурка")
+Invoke-RestMethod "$base/api/animals?q=$q"
+
+8. ФИЛЬТРАЦИЯ ПО ВИДУ (GET)
+--------------------------
+Invoke-RestMethod "$base/api/animals?species=cat"
+
+9. ФИЛЬТРАЦИЯ ПО ГОРОДУ (GET)
+----------------------------
+$city = [uri]::EscapeDataString("Якутск")
+Invoke-RestMethod "$base/api/animals?city=$city"
+
+10. ПАГИНАЦИЯ (GET)
+-------------------
+Invoke-RestMethod "$base/api/animals?page=1&per_page=5"
+
+11. ИЗМЕНЕНИЕ ДАННЫХ (PATCH)
+---------------------------
+$body = @{status = "adopted"} | ConvertTo-Json
+Invoke-RestMethod -Uri "$base/api/animals/$id" -Method PATCH -Headers $headers -ContentType "application/json" -Body $body
+
+Проверка:
+Invoke-RestMethod "$base/api/animals/$id"
+
+Ожидаемый статус животного: adopted. Обновите сайт и DBeaver.
+
+12. ПРОВЕРКА ЗАЩИТЫ API — БЕЗ КЛЮЧА (401)
+---------------------------------------
+try {
+    Invoke-RestMethod -Uri "$base/api/animals" -Method POST -ContentType "application/json" -Body '{"name":"Test","species":"cat","city":"Test"}'
+}
+catch {
+    [int]$_.Exception.Response.StatusCode
+}
+
+Ожидаемый HTTP-код: 401 Unauthorized.
+
+13. ПРОВЕРКА ВАЛИДАЦИИ (400)
+---------------------------
+try {
+    Invoke-RestMethod -Uri "$base/api/animals" -Method POST -Headers $headers -ContentType "application/json" -Body '{"species":"cat","city":"Yakutsk"}'
+}
+catch {
+    [int]$_.Exception.Response.StatusCode
+}
+
+Ожидаемый HTTP-код: 400 Bad Request (нет обязательного поля name).
+
+14. УДАЛЕНИЕ ЖИВОТНОГО (DELETE)
+------------------------------
+Invoke-WebRequest -Uri "$base/api/animals/$id" -Method DELETE -Headers $headers -UseBasicParsing | Select-Object StatusCode
+
+Ожидаемый HTTP-код: 204 No Content.
+
+Проверка удаления:
+try {
+    Invoke-RestMethod "$base/api/animals/$id"
+}
+catch {
+    [int]$_.Exception.Response.StatusCode
+}
+
+Ожидаемый HTTP-код: 404 Not Found. Обновите сайт и DBeaver.
+
+15. ПРОВЕРКА СПИСКА ПОСЛЕ УДАЛЕНИЯ
+----------------------------------
+(Invoke-RestMethod "$base/api/animals").items | Format-Table id,name,species,city,status
+
+16. ПОИСК БАЗЫ ДАННЫХ ДЛЯ DBEAVER
+---------------------------------
+Откройте PowerShell в папке проекта, затем выполните:
+Get-ChildItem -Recurse -File -Include *.db,*.sqlite,*.sqlite3 | Select-Object FullName
